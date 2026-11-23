@@ -23,6 +23,10 @@ STATE_FILE = Path(__file__).with_name("state.json")
 # 좌석 우선순위 (사용자 지정): B석 > A석 > S석 > C석. R석은 감시하지 않음.
 PRIORITY = ["B석", "A석", "S석", "C석"]
 
+# 같은 등급에 이 수 이상 남아 있을 때만 알린다 (연석 가능성이 있는 경우만).
+# 잔여석 API는 등급별 개수만 주므로, 실제로 붙어 있는지는 예매 화면에서 확인해야 한다.
+MIN_SEATS = 2
+
 PERFORMANCES = [
     {
         "goods": "26014713",
@@ -132,7 +136,10 @@ def main():
         if seats is None:
             continue
         prev = state["seats"].get(p["goods"], {})
-        gained = [g for g in PRIORITY if seats.get(g, 0) > prev.get(g, 0)]
+        gained = [
+            g for g in PRIORITY
+            if seats.get(g, 0) >= MIN_SEATS and seats.get(g, 0) > prev.get(g, 0)
+        ]
         any_gained = any_gained or bool(gained)
         if gained or test_mode:
             shown = gained if gained else PRIORITY
@@ -144,7 +151,7 @@ def main():
 
     if lines:
         head = (
-            "[합창 취소표 발생!] 예술의전당에서 바로 예매하세요"
+            "[합창 취소표 2석 이상!] 연석 여부 확인 후 예술의전당에서 예매하세요"
             if any_gained
             else "[합창 감시 테스트] 현재 잔여석"
         )
