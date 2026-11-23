@@ -39,7 +39,6 @@ PERFORMANCES = [
 ]
 
 SEATS_API = "https://nol.yanolja.com/ticket/products/api/remaining-seats?goodsCode={goods}&playSeq=001"
-FAILURE_ALERT_AFTER = 3  # 연속 실패가 이 횟수에 이르면 한 번 알린다.
 
 HEADERS = {
     "User-Agent": (
@@ -67,7 +66,7 @@ def load_state():
     try:
         return json.loads(STATE_FILE.read_text(encoding="utf-8"))
     except (FileNotFoundError, json.JSONDecodeError):
-        return {"seats": {}, "failures": 0}
+        return {"seats": {}}
 
 
 def save_state(state):
@@ -123,16 +122,8 @@ def main():
             print(f"{p['label']} | " + ", ".join(f"{g} {seats.get(g, 0)}" for g in PRIORITY))
 
     if errors:
+        # 카카오톡은 좌석이 생겼을 때만 보낸다. 조회 실패는 Actions 기록에만 남긴다.
         print("조회 실패:\n" + "\n".join(errors))
-        state["failures"] = state.get("failures", 0) + 1
-        if state["failures"] == FAILURE_ALERT_AFTER:
-            kakao_send(
-                f"[합창 감시 경고] 잔여석 조회가 {FAILURE_ALERT_AFTER}회 연속 실패했습니다. "
-                "GitHub Actions 기록을 확인해 주세요.",
-                "https://github.com",
-            )
-    else:
-        state["failures"] = 0
 
     # 새로 생긴 좌석만 알린다 (이전보다 늘어난 등급).
     lines, link, any_gained = [], None, False
@@ -159,7 +150,7 @@ def main():
         )
         kakao_send(head + "\n" + "\n".join(lines), link or PERFORMANCES[0]["sac_url"])
 
-    # 좌석 수나 실패 횟수가 바뀔 때만 파일이 달라지므로, 커밋도 그때만 생긴다.
+    # 좌석 수가 바뀔 때만 파일이 달라지므로, 커밋도 그때만 생긴다.
     save_state(state)
 
 
