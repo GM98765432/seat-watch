@@ -2,7 +2,7 @@ name: 합창 취소표 감시
 
 on:
   schedule:
-    - cron: "*/10 * * * *"   # 10분마다 (GitHub 사정에 따라 몇 분 늦어질 수 있음)
+    - cron: "*/5 * * * *"   # 5분마다 (GitHub 허용 최소 간격, 혼잡 시 몇 분 늦어질 수 있음)
   workflow_dispatch:
     inputs:
       test:
