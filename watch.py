@@ -104,6 +104,36 @@ def kakao_send(text, link_url):
     return ok
 
 
+def alarm_send(title, text, link_url):
+    """Pushover 긴급(emergency) 알림: 무음·방해금지 모드에서도 울리고, 확인할 때까지 반복한다.
+
+    아이폰 Pushover 앱 설정에서 '긴급 우선순위 Critical Alerts'를 켜 두어야 한다.
+    """
+    token = os.environ.get("PUSHOVER_APP_TOKEN")
+    user = os.environ.get("PUSHOVER_USER_KEY")
+    if not (token and user):
+        print("[alarm] Pushover Secrets가 없어 알람을 보내지 않음")
+        return False
+    result = http(
+        "https://api.pushover.net/1/messages.json",
+        {
+            "token": token,
+            "user": user,
+            "title": title,
+            "message": text[:1000],
+            "priority": 2,        # 긴급: 확인 버튼을 누를 때까지 반복
+            "retry": 30,          # 30초마다 다시 울림
+            "expire": 1800,       # 최대 30분 동안
+            "sound": "persistent",
+            "url": link_url,
+            "url_title": "예술의전당 예매 페이지",
+        },
+    )
+    ok = result.get("status") == 1
+    print(f"[alarm] 전송 {'성공' if ok else '실패'}: {result}")
+    return ok
+
+
 def main():
     test_mode = "--test" in sys.argv
     now = datetime.now(KST)
@@ -155,7 +185,14 @@ def main():
             if any_gained
             else "[합창 감시 테스트] 현재 잔여석"
         )
-        kakao_send(head + "\n" + "\n".join(lines), link or PERFORMANCES[0]["sac_url"])
+        body = "\n".join(lines)
+        url = link or PERFORMANCES[0]["sac_url"]
+        # 하나가 실패해도 다른 하나는 반드시 보낸다. 알람을 먼저 울린다.
+        for send in (lambda: alarm_send(head, body, url), lambda: kakao_send(head + "\n" + body, url)):
+            try:
+                send()
+            except Exception as exc:  # noqa: BLE001
+                print(f"[알림 실패] {exc}")
 
     # 좌석 수가 바뀔 때만 파일이 달라지므로, 커밋도 그때만 생긴다.
     save_state(state)

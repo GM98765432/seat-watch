@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       test:
-        description: "현재 잔여석으로 테스트 카카오톡 메시지 보내기"
+        description: "현재 잔여석으로 테스트 알람·카카오톡 보내기"
         type: boolean
         default: false
 
@@ -29,6 +29,8 @@ jobs:
           KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
           KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
           KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          PUSHOVER_APP_TOKEN: ${{ secrets.PUSHOVER_APP_TOKEN }}
+          PUSHOVER_USER_KEY: ${{ secrets.PUSHOVER_USER_KEY }}
         run: python3 watch.py ${{ inputs.test && '--test' || '' }}
 
       - name: 상태 저장
